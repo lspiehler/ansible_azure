@@ -1,0 +1,105 @@
+---
+  - name: Create Azure VM
+    hosts: localhost
+    connection: local
+    vars:
+      resource_group: "AUTOMATION_TESTING"
+      vm_name: testvm
+      location: eastus
+      availability_set: "LyasAvailabilitySet"
+      ssh_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDHcXUqYnlL4bd4jxx8TQ9xJ0Cdj1omNQinUvcsI6OvpHQua0oKt9elxq2nQJLW1p+69L0U58GuTrpFAT3JFbdKn5y+sNO9eyI33Ylyu/YwXZJtcFaW/7WxcxV11qeEddXi19dqA77bDkWesco3hqEYeIW1LmvluE9BH/diLZZviSAhGcYi/AfB1uvGT6ATjM++dJ7YzGDSx/8yVXDwWzgqEI7p9keTktzwRLgH13RjSmOKMiOBT1rdR5k5yYtnLxSYCgpnUKyUfP5k522YWza+5IS8CffcKHseb6+kbB8i4Hvz0DAA+JM3vkLqMh0KIvuufPd/oPuXPu8+egbsAR8fEXFiK9OUxGCysMWoNiOIDVp7INDJOhpfSAevPDIMWTi5qbIIjPooDyhBHpoekucpmJ5ODBv0pK+4Z9vJT89Y4J2lCR/ZQOWc9YiHJJGQ0q//qo8LPUy8YQ0/IJSaewX0F0arPQfIjRo09CVR1oFJqxPh5TWKbVXvAPn13a99XD8="
+    tasks:
+    - name: Create an availability set with default options
+      azure_rm_availabilityset:
+        name: "{{ availability_set }}"
+        location: "{{ location }}"
+        resource_group: "{{ resource_group }}"
+    - name: Create Network Security Group that allows SSH
+      azure_rm_securitygroup:
+        resource_group: "{{ resource_group }}"
+        name: "test_nsg"
+        rules:
+          - name: SSH
+            protocol: Tcp
+            destination_port_range: 22
+            access: Allow
+            priority: 1001
+            direction: Inbound
+          - name: HTTP
+            protocol: Tcp
+            destination_port_range: 80
+            access: Allow
+            priority: 1002
+            direction: Inbound
+    - name: Create storage accounts
+      azure_rm_storageaccount:
+        resource_group: "{{ resource_group }}"
+        name: "{{ item.name }}storage"
+        type: Standard_LRS
+        kind: Storage
+        tags:
+          testing: testing
+      loop: "{{ azure_vms }}"
+    - name: create load balancer
+      azure_rm_loadbalancer:
+        resource_group: "{{ resource_group }}"
+        name: DevLB
+        frontend_ip_configurations:
+          - name: frontendipconf0
+            public_ip_address: DevLB_IP
+        backend_address_pools:
+          - name: backendaddrpool0
+        probes:
+          - name: prob0
+            port: 80
+        load_balancing_rules:
+          - name: lbrbalancingrule0
+            frontend_ip_configuration: frontendipconf0
+            backend_address_pool: backendaddrpool0
+            frontend_port: 80
+            backend_port: 80
+            probe: prob0
+      register: lb
+    - name: Create virtual network inteface card
+      azure_rm_networkinterface:
+        resource_group: "{{ resource_group }}"
+        name: "{{ item.name }}network"
+        virtual_network: "automation_testing-vnet"
+        subnet: "default"
+        ip_configurations:
+        - name: ipconfig1
+          private_ip_address: "{{ item.ip }}"
+          private_ip_allocation_method: Static
+          primary: True
+          load_balancer_backend_address_pools:
+            - "{{ lb.state.backend_address_pools[0].id }}"
+            - name: backendaddrpool0
+              load_balancer: DevLB
+        #public_ip_name: "{{ vm_name }}"
+        security_group: "test_nsg"
+      loop: "{{ azure_vms }}"
+    - name: Create VM
+      azure_rm_virtualmachine:
+        resource_group: "{{ resource_group }}"
+        storage_account: "{{ item.name }}storage"
+        availability_set: "{{ availability_set }}"
+        name: "{{ item.name }}"
+        vm_size: Standard_DS1_v2
+        admin_username: azureuser
+        ssh_password_enabled: false
+        ssh_public_keys:
+          - path: /home/azureuser/.ssh/authorized_keys
+            key_data: "{{ ssh_key }}"
+        network_interfaces: "{{ item.name }}network"
+        tags:
+          service: http
+        image:
+          offer: CentOS-LVM
+          #offer: CentOS
+          publisher: OpenLogic
+          #sku: "7.6"
+          sku: "8-lvm"
+          #sku: "8.0"
+          version: latest
+      loop: "{{ azure_vms }}"
+...
