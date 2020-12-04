@@ -41,11 +41,6 @@
         allocation_method: static
         domain_name: "{{ public_ip_domain_name }}"
       register: ip
-    - name: Show ip variable
-      ansible.builtin.debug:
-        var: ip
-    - debug:
-        msg: You can connect to your environment using http://{{ ip.state.ip_address }} http://{{ ip.state.dns_settings.fqdn }}
     - name: create load balancer
       azure_rm_loadbalancer:
         resource_group: "{{ resource_group }}"
@@ -107,4 +102,7 @@
           #sku: "8.0"
           version: latest
       loop: "{{ azure_vms }}"
+    - name: Show ip variable
+      ansible.builtin.debug:
+        msg: You can connect to your environment using http://{{ ip.state.ip_address }} http://{{ ip.state.dns_settings.fqdn }}
 ...
