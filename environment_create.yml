@@ -60,6 +60,9 @@
             backend_port: 80
             probe: prob0
       register: lb
+    - name: Show load balancer variable
+      ansible.builtin.debug:
+        var: lb
     - name: Create virtual network inteface card
       azure_rm_networkinterface:
         resource_group: "{{ resource_group }}"
