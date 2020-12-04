@@ -2,13 +2,6 @@
   - name: Create Azure VM
     hosts: localhost
     connection: local
-    vars:
-      resource_group: "AUTOMATION_TESTING"
-      public_ip_name: "DevLB_IP"
-      vm_name: testvm
-      location: eastus
-      availability_set: "LyasAvailabilitySet"
-      ssh_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDHcXUqYnlL4bd4jxx8TQ9xJ0Cdj1omNQinUvcsI6OvpHQua0oKt9elxq2nQJLW1p+69L0U58GuTrpFAT3JFbdKn5y+sNO9eyI33Ylyu/YwXZJtcFaW/7WxcxV11qeEddXi19dqA77bDkWesco3hqEYeIW1LmvluE9BH/diLZZviSAhGcYi/AfB1uvGT6ATjM++dJ7YzGDSx/8yVXDwWzgqEI7p9keTktzwRLgH13RjSmOKMiOBT1rdR5k5yYtnLxSYCgpnUKyUfP5k522YWza+5IS8CffcKHseb6+kbB8i4Hvz0DAA+JM3vkLqMh0KIvuufPd/oPuXPu8+egbsAR8fEXFiK9OUxGCysMWoNiOIDVp7INDJOhpfSAevPDIMWTi5qbIIjPooDyhBHpoekucpmJ5ODBv0pK+4Z9vJT89Y4J2lCR/ZQOWc9YiHJJGQ0q//qo8LPUy8YQ0/IJSaewX0F0arPQfIjRo09CVR1oFJqxPh5TWKbVXvAPn13a99XD8="
     tasks:
     - name: Create an availability set with default options
       azure_rm_availabilityset:
@@ -43,10 +36,10 @@
       loop: "{{ azure_vms }}"
     - name: Create a public ip address
       azure_rm_publicipaddress:
-        resource_group: myResourceGroup
+        resource_group: "{{ resource_group }}"
         name: "{{ public_ip_name }}"
         allocation_method: static
-        domain_name: devlbip
+        domain_name: "{{ public_ip_name }}"
       register: ip
     - name: Show ip variable
       ansible.builtin.debug:
@@ -86,7 +79,6 @@
             - "{{ lb.state.backend_address_pools[0].id }}"
             - name: backendaddrpool0
               load_balancer: DevLB
-        #public_ip_name: "{{ vm_name }}"
         security_group: "test_nsg"
       loop: "{{ azure_vms }}"
     - name: Create VM
