@@ -4,6 +4,7 @@
     connection: local
     vars:
       resource_group: "AUTOMATION_TESTING"
+      public_ip_name: "DevLB_IP"
       vm_name: testvm
       location: eastus
       availability_set: "LyasAvailabilitySet"
@@ -40,13 +41,23 @@
         tags:
           testing: testing
       loop: "{{ azure_vms }}"
+    - name: Create a public ip address
+      azure_rm_publicipaddress:
+        resource_group: myResourceGroup
+        name: "{{ public_ip_name }}"
+        allocation_method: static
+        domain_name: devlbip
+      register: ip
+    - name: Show ip variable
+      ansible.builtin.debug:
+        var: ip
     - name: create load balancer
       azure_rm_loadbalancer:
         resource_group: "{{ resource_group }}"
         name: DevLB
         frontend_ip_configurations:
           - name: frontendipconf0
-            public_ip_address: DevLB_IP
+            public_ip_address: "{{ public_ip_name }}"
         backend_address_pools:
           - name: backendaddrpool0
         probes:
@@ -60,9 +71,6 @@
             backend_port: 80
             probe: prob0
       register: lb
-    - name: Show load balancer variable
-      ansible.builtin.debug:
-        var: lb
     - name: Create virtual network inteface card
       azure_rm_networkinterface:
         resource_group: "{{ resource_group }}"
