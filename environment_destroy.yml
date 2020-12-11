@@ -21,11 +21,11 @@
         state: absent
         resource_group: "{{ resource_group }}"
         name: DevLB
-    #- name: Delete public ip
-    #  azure_rm_publicipaddress:
-    #    resource_group: "{{ resource_group }}"
-    #    name: "{{ public_ip_name }}"
-    #    state: absent
+    - name: Delete public ip
+      azure_rm_publicipaddress:
+        resource_group: "{{ resource_group }}"
+        name: "{{ public_ip_name }}"
+        state: absent
     - name: Delete storage accounts
       azure_rm_storageaccount:
         state: absent
