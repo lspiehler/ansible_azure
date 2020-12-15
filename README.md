@@ -34,12 +34,13 @@ sudo yum -y install azure-cli
 az login
 # ^ follow directions from stdout
 ```
-### Create Environment
+## Run Playbook
+### Create Environment:
 ```
 ansible-playbook -e @vars.yml environment_create.yml -e 'ansible_python_interpreter=/usr/bin/python3'
 ```
 
-### Destroy Environment
+### Destroy Environment:
 ```
 ansible-playbook -e @vars.yml environment_destroy.yml -e 'ansible_python_interpreter=/usr/bin/python3'
 ```
